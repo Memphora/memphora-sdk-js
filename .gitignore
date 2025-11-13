@@ -7,4 +7,6 @@ dist/
 coverage/
 .nyc_output/
 *.tsbuildinfo
+tests/
+test-sdk.js
 
