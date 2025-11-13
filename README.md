@@ -1,4 +1,4 @@
-# Memphora SDK (JavaScript/TypeScript)
+# Memphora SDK (TypeScript)
 
 Persistent memory layer for AI agents. Store, search, and retrieve memories with semantic understanding.
 
