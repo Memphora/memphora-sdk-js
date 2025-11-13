@@ -15,7 +15,7 @@ import { Memphora } from 'memphora';
 
 // Initialize
 const memory = new Memphora({
-  userId: 'user123',        // Required: Unique user identifier
+  userId: 'user123',        // Unique identifier for this user (Admin can track data from dashboard)
   apiKey: 'your_api_key'   // Required: Get from https://memphora.ai/dashboard
 });
 
@@ -45,7 +45,7 @@ const context = await memory.getContext('Tell me about my hobbies');
 
 ```typescript
 const memory = new Memphora({
-  userId: string,        // Required: Unique user identifier for tracking
+  userId: string,        // Unique identifier for this user (Admin can track data from dashboard)
   apiKey: string         // Required: API key from https://memphora.ai/dashboard
 });
 ```
@@ -178,7 +178,7 @@ Full TypeScript support with type definitions included.
 import { Memphora, Memory, SearchOptions } from 'memphora';
 
 const memory: Memphora = new Memphora({
-  userId: 'user123',                    // Required: Unique user identifier
+  userId: 'user123',                    // Unique identifier for this user (Admin can track data from dashboard)
   apiKey: process.env.MEMPHORA_API_KEY // Required: API key from dashboard
 });
 
@@ -209,7 +209,7 @@ try {
 import { Memphora } from 'memphora';
 
 const memory = new Memphora({
-  userId: 'user123',                    // Unique identifier for this user
+  userId: 'user123',                    // Unique identifier for this user (Admin can track data from dashboard)
   apiKey: process.env.MEMPHORA_API_KEY  // Required: Get from dashboard
 });
 
@@ -233,11 +233,11 @@ async function chat(userMessage: string): Promise<string> {
 // Create separate instances for different agents
 const agents = {
   coder: new Memphora({ 
-    userId: 'user123',  // Required: Unique user identifier
+    userId: 'user123',  // Unique identifier for this user (Admin can track data from dashboard)
     apiKey: key         // Required: API key from dashboard
   }),
   writer: new Memphora({ 
-    userId: 'user123',  // Required: Unique user identifier
+    userId: 'user123',  // Unique identifier for this user (Admin can track data from dashboard)
     apiKey: key         // Required: API key from dashboard
   })
 };
