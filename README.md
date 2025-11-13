@@ -258,12 +258,12 @@ MIT
 
 ## Links
 
-- [Documentation](https://memphora.ai/docs/sdk-js)
-- [Dashboard](https://memphora.ai/dashboard)
-- [GitHub](https://github.com/Memphora/memphora-sdk-js)
-- [NPM](https://www.npmjs.com/package/memphora)
+- <a href="https://memphora.ai/docs/sdk-js" target="_blank" rel="noopener noreferrer">Documentation</a>
+- <a href="https://memphora.ai/dashboard" target="_blank" rel="noopener noreferrer">Dashboard</a>
+- <a href="https://github.com/Memphora/memphora-sdk-js" target="_blank" rel="noopener noreferrer">GitHub</a>
+- <a href="https://www.npmjs.com/package/memphora" target="_blank" rel="noopener noreferrer">NPM</a>
 
 ## Support
 
 - Email: info@memphora.ai
-- Issues: https://github.com/Memphora/memphora-sdk-js/issues
+- <a href="https://github.com/Memphora/memphora-sdk-js/issues" target="_blank" rel="noopener noreferrer">Issues</a>
