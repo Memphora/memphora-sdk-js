@@ -258,7 +258,7 @@ MIT
 
 ## Links
 
-- [Documentation](https://memphora.ai/docs)
+- [Documentation](https://memphora.ai/docs/sdk-js)
 - [Dashboard](https://memphora.ai/dashboard)
 - [GitHub](https://github.com/Memphora/memphora-sdk-js)
 - [NPM](https://www.npmjs.com/package/memphora)
