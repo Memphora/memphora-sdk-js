@@ -268,4 +268,4 @@ MIT
 ## Support
 
 - Email: info@memphora.ai
-- Issues: https://github.com/Memphora/memphora-sdk/issues
+- Issues: https://github.com/Memphora/memphora-sdk-js/issues
