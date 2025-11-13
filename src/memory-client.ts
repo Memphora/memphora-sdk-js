@@ -13,9 +13,9 @@ import type {
 
 export class MemoryClient {
   private baseUrl: string
-  private apiKey?: string
+  private apiKey: string
 
-  constructor(baseUrl: string = 'https://api.memphora.ai/api/v1', apiKey?: string) {
+  constructor(baseUrl: string = 'https://api.memphora.ai/api/v1', apiKey: string) {
     this.baseUrl = baseUrl.replace(/\/$/, '')
     this.apiKey = apiKey
   }
@@ -40,10 +40,7 @@ export class MemoryClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    }
-
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`
+      'Authorization': `Bearer ${this.apiKey}`
     }
 
     const response = await fetch(url.toString(), {
@@ -416,9 +413,8 @@ export class MemoryClient {
       formData.append('metadata', JSON.stringify(metadata))
     }
 
-    const headers: Record<string, string> = {}
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.apiKey}`
     }
 
     const url = new URL(`${this.baseUrl}/memories/image/upload`)

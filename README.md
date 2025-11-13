@@ -15,8 +15,8 @@ import { Memphora } from 'memphora';
 
 // Initialize
 const memory = new Memphora({
-  userId: 'user123',
-  apiKey: 'your_api_key' // Get from https://memphora.ai
+  userId: 'user123',        // Required: Unique user identifier
+  apiKey: 'your_api_key'   // Required: Get from https://memphora.ai/dashboard
 });
 
 // Store a memory
@@ -45,9 +45,9 @@ const context = await memory.getContext('Tell me about my hobbies');
 
 ```typescript
 const memory = new Memphora({
-  userId: string,        // Required: User identifier
-  apiKey?: string,       // Optional: API key for authentication
-  apiUrl?: string,       // Optional: Custom API URL
+  userId: string,        // Required: Unique user identifier for tracking
+  apiKey: string,        // Required: API key from https://memphora.ai/dashboard
+  apiUrl?: string,       // Optional: Custom API URL (default: https://api.memphora.ai/api/v1)
   autoCompress?: boolean // Optional: Auto-compress context (default: true)
 });
 ```
@@ -179,8 +179,8 @@ Full TypeScript support with type definitions included.
 import { Memphora, Memory, SearchOptions } from '@memphora/sdk';
 
 const memory: Memphora = new Memphora({
-  userId: 'user123',
-  apiKey: process.env.MEMPHORA_API_KEY
+  userId: 'user123',                    // Required: Unique user identifier
+  apiKey: process.env.MEMPHORA_API_KEY // Required: API key from dashboard
 });
 
 const results: Memory[] = await memory.search('query');
@@ -205,9 +205,11 @@ try {
 ## Environment Variables
 
 ```bash
-MEMPHORA_API_KEY=your_api_key
-MEMPHORA_API_URL=https://api.memphora.ai/api/v1  # Optional
+MEMPHORA_API_KEY=your_api_key  # Required: Get from https://memphora.ai/dashboard
+MEMPHORA_API_URL=https://api.memphora.ai/api/v1  # Optional: Custom API URL
 ```
+
+**Note:** The `apiKey` is required and must be obtained from your Memphora dashboard at https://memphora.ai/dashboard. Each user should have a unique `userId` to track their memories separately.
 
 ## Examples
 
@@ -217,8 +219,8 @@ MEMPHORA_API_URL=https://api.memphora.ai/api/v1  # Optional
 import { Memphora } from 'memphora';
 
 const memory = new Memphora({
-  userId: 'user123',
-  apiKey: process.env.MEMPHORA_API_KEY
+  userId: 'user123',                    // Unique identifier for this user
+  apiKey: process.env.MEMPHORA_API_KEY  // Required: Get from dashboard
 });
 
 async function chat(userMessage: string): Promise<string> {
@@ -239,8 +241,14 @@ async function chat(userMessage: string): Promise<string> {
 
 ```typescript
 const agents = {
-  coder: new Memphora({ userId: 'user123', apiKey: key }),
-  writer: new Memphora({ userId: 'user123', apiKey: key })
+  coder: new Memphora({ 
+    userId: 'user123',  // Required: Unique user identifier
+    apiKey: key        // Required: API key from dashboard
+  }),
+  writer: new Memphora({ 
+    userId: 'user123',  // Required: Unique user identifier
+    apiKey: key        // Required: API key from dashboard
+  })
 };
 
 // Each agent has separate memory

@@ -6,11 +6,11 @@ import { MemoryClient } from './memory-client'
 import type { Memory, ConversationMessage } from './types'
 
 export interface MemphoraOptions {
-  userId: string
-  apiKey?: string
-  apiUrl?: string
-  autoCompress?: boolean
-  maxTokens?: number
+  userId: string        // Required: Unique user identifier for tracking
+  apiKey: string        // Required: API key from https://memphora.ai/dashboard
+  apiUrl?: string       // Optional: Custom API URL (default: https://api.memphora.ai/api/v1)
+  autoCompress?: boolean // Optional: Auto-compress context (default: true)
+  maxTokens?: number    // Optional: Maximum tokens for context (default: 500)
 }
 
 export class Memphora {
