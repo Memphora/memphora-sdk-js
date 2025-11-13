@@ -79,90 +79,91 @@ const context = await memory.getContext('Tell me about myself');
 
 ### Advanced Methods
 
-#### `storeConversation(userMessage: string, aiResponse: string): Promise<void>`
-Store a conversation and extract memories.
+#### `storeConversation(userMessage: string, aiResponse: string): Promise<Memory[]>`
+Store a conversation and extract memories. Returns the extracted memories.
 
 ```typescript
-await memory.storeConversation(
+const memories = await memory.storeConversation(
   "What's my favorite color?",
   "Based on your memories, your favorite color is blue."
 );
 ```
 
-#### `getMemory(memoryId: string): Promise<Memory>`
-Get a specific memory by ID.
-
-#### `updateMemory(memoryId: string, content?: string, metadata?: object): Promise<Memory>`
-Update an existing memory.
-
-#### `deleteMemory(memoryId: string): Promise<boolean>`
-Delete a memory.
-
-#### `listMemories(limit?: number): Promise<Memory[]>`
+#### `getAll(limit?: number): Promise<Memory[]>`
 List all memories for the user.
 
-### Multi-Agent Support
-
 ```typescript
-// Store agent-specific memory
-await memory.storeAgentMemory(
-  'agent_001',
-  'User prefers concise responses',
-  'run_123'
-);
-
-// Search agent memories
-const agentMemories = await memory.searchAgentMemories(
-  'agent_001',
-  'user preferences'
-);
-
-// Get all agent memories
-const allAgentMemories = await memory.getAgentMemories('agent_001');
+const allMemories = await memory.getAll(100);
 ```
 
-### Group/Collaborative Features
+#### `update(memoryId: string, content?: string, metadata?: object): Promise<Memory>`
+Update an existing memory.
 
 ```typescript
-// Store group memory
-await memory.storeGroupMemory(
-  'team_alpha',
-  'We decided to use React for the frontend'
-);
+const updated = await memory.update(memoryId, 'Updated content', { category: 'work' });
+```
 
-// Search group memories
-const teamMemories = await memory.searchGroupMemories(
-  'team_alpha',
-  'frontend decisions'
-);
+#### `delete(memoryId: string): Promise<boolean>`
+Delete a memory.
 
-// Get group context
-const groupContext = await memory.getGroupContext('team_alpha');
+```typescript
+await memory.delete(memoryId);
+```
+
+**Note:** To get a specific memory by ID, use `memory.rawClient.getMemory(memoryId)`.
+
+### Advanced Search
+
+```typescript
+// Advanced search with filters and options
+const results = await memory.searchAdvanced('query', {
+  limit: 10,
+  filters: { category: 'work' },
+  min_score: 0.7,
+  sort_by: 'relevance'
+});
+
+// Optimized search for better performance
+const optimized = await memory.searchOptimized('query', {
+  max_tokens: 2000,
+  max_memories: 20,
+  use_compression: true
+});
+```
+
+### Batch Operations
+
+```typescript
+// Store multiple memories at once
+const memories = await memory.batchStore([
+  { content: 'Memory 1', metadata: { category: 'work' } },
+  { content: 'Memory 2', metadata: { category: 'personal' } }
+]);
+
+// Merge multiple memories
+const merged = await memory.merge([memoryId1, memoryId2], 'combine');
 ```
 
 ### Analytics
 
 ```typescript
-// Get user analytics
-const analytics = await memory.getUserAnalytics();
-console.log(analytics);
+// Get user statistics
+const stats = await memory.getStatistics();
+console.log(stats);
 // { totalMemories: 42, avgMemoryLength: 85, ... }
-
-// Get memory growth over time
-const growth = await memory.getMemoryGrowth(30); // last 30 days
 ```
 
 ### Graph Features
 
 ```typescript
-// Get related memories
-const related = await memory.getRelatedMemories(memoryId);
+// Get memory context with related memories
+const context = await memory.getContextForMemory(memoryId, 2);
 
 // Find contradictions
-const contradictions = await memory.client.findContradictions(memoryId);
+const contradictions = await memory.findContradictions(memoryId, 0.7);
 
-// Link memories
-await memory.client.linkMemories(
+// Link memories (via raw client)
+await memory.rawClient.linkMemories(
   sourceId,
   targetId,
   'related' // or 'contradicts', 'supports', 'extends'
@@ -174,7 +175,7 @@ await memory.client.linkMemories(
 Full TypeScript support with type definitions included.
 
 ```typescript
-import { Memphora, Memory, SearchOptions } from '@memphora/sdk';
+import { Memphora, Memory, SearchOptions } from 'memphora';
 
 const memory: Memphora = new Memphora({
   userId: 'user123',                    // Required: Unique user identifier
@@ -238,20 +239,26 @@ async function chat(userMessage: string): Promise<string> {
 ### Multi-Agent System
 
 ```typescript
+// Create separate instances for different agents
 const agents = {
   coder: new Memphora({ 
     userId: 'user123',  // Required: Unique user identifier
-    apiKey: key        // Required: API key from dashboard
+    apiKey: key         // Required: API key from dashboard
   }),
   writer: new Memphora({ 
     userId: 'user123',  // Required: Unique user identifier
-    apiKey: key        // Required: API key from dashboard
+    apiKey: key         // Required: API key from dashboard
   })
 };
 
-// Each agent has separate memory
-await agents.coder.storeAgentMemory('coder', 'User prefers Python');
-await agents.writer.storeAgentMemory('writer', 'User likes technical writing');
+// Each agent can store memories with metadata to identify the agent
+await agents.coder.store('User prefers Python', { agent: 'coder' });
+await agents.writer.store('User likes technical writing', { agent: 'writer' });
+
+// Search with agent filter
+const coderMemories = await agents.coder.searchAdvanced('Python', {
+  filters: { agent: 'coder' }
+});
 ```
 
 ## License
@@ -260,7 +267,7 @@ MIT
 
 ## Links
 
-- [Documentation](https://docs.memphora.ai)
+- [Documentation](https://memphora.ai/docs)
 - [Dashboard](https://memphora.ai/dashboard)
 - [GitHub](https://github.com/Memphora/memphora-sdk-js)
 - [NPM](https://www.npmjs.com/package/memphora)
