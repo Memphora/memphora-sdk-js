@@ -46,9 +46,7 @@ const context = await memory.getContext('Tell me about my hobbies');
 ```typescript
 const memory = new Memphora({
   userId: string,        // Required: Unique user identifier for tracking
-  apiKey: string,        // Required: API key from https://memphora.ai/dashboard
-  apiUrl?: string,       // Optional: Custom API URL (default: https://api.memphora.ai/api/v1)
-  autoCompress?: boolean // Optional: Auto-compress context (default: true)
+  apiKey: string         // Required: API key from https://memphora.ai/dashboard
 });
 ```
 
