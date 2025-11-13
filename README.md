@@ -201,15 +201,6 @@ try {
 }
 ```
 
-## Environment Variables
-
-```bash
-MEMPHORA_API_KEY=your_api_key  # Required: Get from https://memphora.ai/dashboard
-MEMPHORA_API_URL=https://api.memphora.ai/api/v1  # Optional: Custom API URL
-```
-
-**Note:** The `apiKey` is required and must be obtained from your Memphora dashboard at https://memphora.ai/dashboard. Each user should have a unique `userId` to track their memories separately.
-
 ## Examples
 
 ### Chatbot with Memory
