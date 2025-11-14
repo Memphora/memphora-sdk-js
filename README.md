@@ -62,11 +62,26 @@ const memory = await memory.store('I work as a software engineer', {
 });
 ```
 
-#### `search(query: string, limit?: number): Promise<Memory[]>`
-Search memories semantically.
+#### `search(query: string, limit?: number, options?: object): Promise<Memory[]>`
+Search memories semantically with optional external reranking.
 
 ```typescript
+// Basic search
 const results = await memory.search('What is my job?', 5);
+
+// Search with Cohere reranking for better relevance
+const rerankedResults = await memory.search('headphone recommendations', 10, {
+  rerank: true,
+  rerank_provider: 'cohere',  // or 'jina' or 'auto'
+  cohere_api_key: 'your-cohere-api-key'  // Get from https://dashboard.cohere.com/api-keys
+});
+
+// Search with Jina AI reranking (multilingual support)
+const jinaResults = await memory.search('recomendaciones de auriculares', 10, {
+  rerank: true,
+  rerank_provider: 'jina',
+  jina_api_key: 'your-jina-api-key'  // Get from https://jina.ai/
+});
 ```
 
 #### `getContext(query: string, limit?: number): Promise<string>`
@@ -110,7 +125,20 @@ Delete a memory.
 await memory.delete(memoryId);
 ```
 
-**Note:** To get a specific memory by ID, use `memory.rawClient.getMemory(memoryId)`.
+#### `getMemory(memoryId: string): Promise<Memory>`
+Get a specific memory by ID.
+
+```typescript
+const mem = await memory.getMemory(memoryId);
+console.log(mem.content);
+```
+
+#### `deleteAll(): Promise<any>`
+Delete all memories for this user. Warning: This action is irreversible.
+
+```typescript
+await memory.deleteAll();
+```
 
 ### Advanced Search
 
@@ -159,15 +187,195 @@ console.log(stats);
 // Get memory context with related memories
 const context = await memory.getContextForMemory(memoryId, 2);
 
+// Get memories related to a specific memory
+const related = await memory.getRelatedMemories(memoryId, 10);
+
 // Find contradictions
 const contradictions = await memory.findContradictions(memoryId, 0.7);
 
-// Link memories (via raw client)
-await memory.rawClient.linkMemories(
-  sourceId,
+// Link two memories in the graph
+await memory.link(
+  memoryId,
   targetId,
   'related' // or 'contradicts', 'supports', 'extends'
 );
+
+// Find shortest path between two memories
+const path = await memory.findPath(sourceId, targetId);
+console.log(path.distance); // Number of steps
+```
+
+### Context Methods
+
+```typescript
+// Get optimized context (26% better accuracy, 91% faster)
+const optimizedContext = await memory.getOptimizedContext(
+  'user preferences',
+  2000,  // maxTokens
+  20,    // maxMemories
+  true,  // useCompression
+  true   // useCache
+);
+
+// Get enhanced context (35%+ accuracy improvement)
+const enhancedContext = await memory.getEnhancedContext(
+  'programming languages',
+  1500,  // maxTokens
+  15,    // maxMemories
+  true   // useCompression
+);
+```
+
+### Version Control
+
+```typescript
+// Get all versions of a memory
+const versions = await memory.getVersions(memoryId, 50);
+
+// Compare two versions
+const comparison = await memory.compareVersions(versionId1, versionId2);
+console.log(comparison.changes);
+console.log(comparison.similarity);
+
+// Rollback to a specific version
+await memory.rollback(memoryId, targetVersion);
+```
+
+### Conversation Management
+
+```typescript
+// Record a full conversation
+const conversation = [
+  { role: 'user', content: 'I need help with TypeScript' },
+  { role: 'assistant', content: "I'd be happy to help!" }
+];
+const recorded = await memory.recordConversation(conversation, 'web_chat', {
+  sessionId: 'sess_123'
+});
+
+// Get all conversations
+const conversations = await memory.getConversations('web_chat', 50);
+
+// Get a specific conversation by ID
+const conv = await memory.getConversation(conversationId);
+
+// Get rolling summary of all conversations
+const summary = await memory.getSummary();
+console.log(summary.total_conversations);
+console.log(summary.topics);
+```
+
+### Multi-Agent Support
+
+```typescript
+// Store a memory for a specific agent
+await memory.storeAgentMemory(
+  'agent_123',
+  'User prefers Python for backend development',
+  'run_001',  // optional run_id
+  { category: 'preference' }
+);
+
+// Search memories for a specific agent
+const agentMemories = await memory.searchAgentMemories(
+  'agent_123',
+  'What does the user prefer?',
+  'run_001',  // optional run_id
+  10
+);
+
+// Get all memories for a specific agent
+const allAgentMemories = await memory.getAgentMemories('agent_123', 100);
+```
+
+### Group/Collaborative Features
+
+```typescript
+// Store a shared memory for a group
+await memory.storeGroupMemory(
+  'team_alpha',
+  'Team decided to use React for the frontend',
+  { priority: 'high' }
+);
+
+// Search memories for a group
+const groupMemories = await memory.searchGroupMemories(
+  'team_alpha',
+  'What framework did we choose?',
+  10
+);
+
+// Get context for a group
+const groupContext = await memory.getGroupContext('team_alpha', 50);
+```
+
+### Analytics
+
+```typescript
+// Get user statistics
+const stats = await memory.getStatistics();
+console.log(stats);
+// { totalMemories: 42, avgMemoryLength: 85, ... }
+
+// Get user's memory statistics and insights
+const analytics = await memory.getUserAnalytics();
+console.log(analytics);
+
+// Track memory growth over time
+const growth = await memory.getMemoryGrowth(30); // last 30 days
+console.log(growth);
+```
+
+### Image Operations
+
+```typescript
+// Store an image memory
+const imageMem = await memory.storeImage({
+  imageUrl: 'https://example.com/photo.jpg',
+  description: 'A photo of the Golden Gate Bridge',
+  metadata: { location: 'San Francisco', type: 'landmark' }
+});
+
+// Search image memories
+const imageResults = await memory.searchImages('bridge', 5);
+
+// Upload an image from file
+import * as fs from 'fs';
+const imageBuffer = fs.readFileSync('product_photo.jpg');
+const imageBlob = new Blob([imageBuffer]);
+const uploaded = await memory.uploadImage(
+  imageBlob,
+  'product_photo.jpg',
+  { category: 'product', productId: 'prod_123' }
+);
+```
+
+### Export & Import
+
+```typescript
+// Export all memories
+const exportData = await memory.export('json');
+// or
+const csvData = await memory.export('csv');
+
+// Import memories
+await memory.import(exportData.data, 'json');
+```
+
+### Text Processing
+
+```typescript
+// Make text more concise
+const conciseResult = await memory.concise('This is a very long text that needs to be made more concise...');
+console.log(conciseResult.concise_text);
+```
+
+### Health Check
+
+```typescript
+// Check API health
+const health = await memory.health();
+console.log(health.status);
 ```
 
 ## TypeScript Support
@@ -230,26 +438,121 @@ async function chat(userMessage: string): Promise<string> {
 ### Multi-Agent System
 
 ```typescript
-// Create separate instances for different agents
-const agents = {
-  coder: new Memphora({ 
-    userId: 'user123',  // Unique identifier for this user (Admin can track data from dashboard)
-    apiKey: key         // Required: API key from dashboard
-  }),
-  writer: new Memphora({ 
-    userId: 'user123',  // Unique identifier for this user (Admin can track data from dashboard)
-    apiKey: key         // Required: API key from dashboard
-  })
-};
-
-// Each agent can store memories with metadata to identify the agent
-await agents.coder.store('User prefers Python', { agent: 'coder' });
-await agents.writer.store('User likes technical writing', { agent: 'writer' });
-
-// Search with agent filter
-const coderMemories = await agents.coder.searchAdvanced('Python', {
-  filters: { agent: 'coder' }
+const memory = new Memphora({
+  userId: 'user123',
+  apiKey: 'your_api_key'
 });
+
+// Store memories for different agents
+await memory.storeAgentMemory('coder', 'User prefers Python', 'run_001');
+await memory.storeAgentMemory('writer', 'User likes technical writing', 'run_001');
+
+// Search memories for a specific agent
+const coderMemories = await memory.searchAgentMemories('coder', 'What does the user prefer?');
+
+// Get all memories for an agent
+const allCoderMemories = await memory.getAgentMemories('coder', 100);
+```
+
+### Group Collaboration
+
+```typescript
+const memory = new Memphora({
+  userId: 'user123',
+  apiKey: 'your_api_key'
+});
+
+// Store shared memories for a team
+await memory.storeGroupMemory('team_alpha', 'Team decided to use React', {
+  priority: 'high',
+  decisionDate: '2024-01-15'
+});
+
+// Search group memories
+const teamMemories = await memory.searchGroupMemories('team_alpha', 'What framework?');
+
+// Get group context
+const teamContext = await memory.getGroupContext('team_alpha', 50);
+```
+
+### Memory Linking and Path Finding
+
+```typescript
+const memory = new Memphora({
+  userId: 'user123',
+  apiKey: 'your_api_key'
+});
+
+// Store related memories
+const mem1 = await memory.store('User works at Google');
+const mem2 = await memory.store('User is a software engineer');
+const mem3 = await memory.store('User lives in San Francisco');
+
+// Link memories together
+await memory.link(mem1.id, mem2.id, 'related');
+await memory.link(mem1.id, mem3.id, 'related');
+
+// Get related memories
+const related = await memory.getRelatedMemories(mem1.id, 10);
+
+// Find path between memories
+const path = await memory.findPath(mem1.id, mem3.id);
+console.log(`Path distance: ${path.distance} steps`);
+```
+
+### Version Control and Rollback
+
+```typescript
+const memory = new Memphora({
+  userId: 'user123',
+  apiKey: 'your_api_key'
+});
+
+// Store and update a memory multiple times
+const mem = await memory.store('User works at Microsoft');
+await memory.update(mem.id, 'User works at Google');
+await memory.update(mem.id, 'User works at Meta');
+
+// Get all versions
+const versions = await memory.getVersions(mem.id, 10);
+versions.forEach(v => {
+  console.log(`Version ${v.version}: ${v.content}`);
+});
+
+// Compare two versions
+const comparison = await memory.compareVersions(versions[0].id, versions[1].id);
+console.log('Changes:', comparison.changes);
+console.log('Similarity:', comparison.similarity);
+
+// Rollback to a previous version
+await memory.rollback(mem.id, 1);
+```
+
+### Using Optimized Context
+
+```typescript
+const memory = new Memphora({
+  userId: 'user123',
+  apiKey: 'your_api_key'
+});
+
+// Get optimized context (best for production)
+const optimizedContext = await memory.getOptimizedContext(
+  'user preferences',
+  2000,  // maxTokens
+  20,    // maxMemories
+  true,  // useCompression
+  true   // useCache
+);
+
+// Use in your AI prompt
+const prompt = `Context about user:
+${optimizedContext}
+
+User query: What are my preferences?
+Assistant:`;
+
+const response = await yourAIModel(prompt);
 ```
 
 ## License

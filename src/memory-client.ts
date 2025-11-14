@@ -74,9 +74,34 @@ export class MemoryClient {
     })
   }
 
-  async searchMemories(userId: string, query: string, limit: number = 5): Promise<Memory[]> {
+  async searchMemories(
+    userId: string,
+    query: string,
+    limit: number = 5,
+    options?: {
+      rerank?: boolean
+      rerank_provider?: 'cohere' | 'jina' | 'auto'
+      cohere_api_key?: string
+      jina_api_key?: string
+    }
+  ): Promise<Memory[]> {
+    const body: any = {
+      user_id: userId,
+      query,
+      limit,
+      rerank: options?.rerank || false,
+      rerank_provider: options?.rerank_provider || 'auto',
+    }
+    
+    if (options?.cohere_api_key) {
+      body.cohere_api_key = options.cohere_api_key
+    }
+    if (options?.jina_api_key) {
+      body.jina_api_key = options.jina_api_key
+    }
+    
     return this.request<Memory[]>('POST', '/memories/search', {
-      body: { user_id: userId, query, limit },
+      body,
     })
   }
 
@@ -347,6 +372,10 @@ export class MemoryClient {
     return this.request('GET', `/conversations/${conversationId}`)
   }
 
+  async getSummary(userId: string): Promise<any> {
+    return this.request('GET', `/memory/summary/${userId}`)
+  }
+
   async getUserConversations(
     userId: string,
     options?: {
@@ -559,6 +588,99 @@ export class MemoryClient {
     if (options?.userId) params.user_id = options.userId
 
     return this.request<any[]>('GET', '/audit-logs', { params })
+  }
+
+  // Multi-Agent Support
+  async storeAgentMemory(
+    userId: string,
+    agentId: string,
+    content: string,
+    runId?: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    return this.request('POST', '/agents/memories', {
+      body: {
+        user_id: userId,
+        agent_id: agentId,
+        content,
+        run_id: runId,
+        metadata: metadata || {},
+      },
+    })
+  }
+
+  async searchAgentMemories(
+    userId: string,
+    agentId: string,
+    query: string,
+    runId?: string,
+    limit: number = 10
+  ): Promise<Memory[]> {
+    return this.request<Memory[]>('POST', '/agents/memories/search', {
+      body: {
+        user_id: userId,
+        agent_id: agentId,
+        query,
+        run_id: runId,
+        limit,
+      },
+    })
+  }
+
+  async getAgentMemories(userId: string, agentId: string, limit: number = 100): Promise<Memory[]> {
+    return this.request<Memory[]>('GET', `/agents/${agentId}/memories`, {
+      params: { user_id: userId, limit },
+    })
+  }
+
+  // Group/Collaborative Features
+  async storeGroupMemory(
+    userId: string,
+    groupId: string,
+    content: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    return this.request('POST', '/groups/memories', {
+      body: {
+        user_id: userId,
+        group_id: groupId,
+        content,
+        metadata: metadata || {},
+      },
+    })
+  }
+
+  async searchGroupMemories(
+    userId: string,
+    groupId: string,
+    query: string,
+    limit: number = 10
+  ): Promise<Memory[]> {
+    return this.request<Memory[]>('POST', '/groups/memories/search', {
+      body: {
+        user_id: userId,
+        group_id: groupId,
+        query,
+        limit,
+      },
+    })
+  }
+
+  async getGroupContext(userId: string, groupId: string, limit: number = 50): Promise<any> {
+    return this.request('GET', `/groups/${groupId}/context`, {
+      params: { limit },
+    })
+  }
+
+  // User Analytics
+  async getUserAnalytics(userId: string): Promise<any> {
+    return this.request('GET', `/analytics/user-stats/${userId}`)
+  }
+
+  async getMemoryGrowth(userId: string, days: number = 30): Promise<any> {
+    return this.request('GET', '/analytics/memory-growth', {
+      params: { days, user_id: userId },
+    })
   }
 }
 
