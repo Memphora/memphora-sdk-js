@@ -413,7 +413,7 @@ export class MemoryClient {
     userId: string,
     options?: {
       imageUrl?: string
-      imageBase64?: string
+      imageBase64?: string  // camelCase parameter (TypeScript convention)
       description?: string
       metadata?: Record<string, any>
     }
@@ -422,7 +422,7 @@ export class MemoryClient {
       body: {
         user_id: userId,
         image_url: options?.imageUrl,
-        image_base64: options?.imageBase64,
+        image_base64: options?.imageBase64,  // snake_case in request body (consistent with Python SDK)
         description: options?.description,
         metadata: options?.metadata || {},
       },
@@ -435,9 +435,40 @@ export class MemoryClient {
     filename: string,
     metadata?: Record<string, any>
   ): Promise<any> {
+    // Determine MIME type from filename extension
+    const getMimeType = (filename: string): string => {
+      const ext = filename.toLowerCase().split('.').pop() || ''
+      const mimeTypes: Record<string, string> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'bmp': 'image/bmp',
+        'ico': 'image/x-icon'
+      }
+      return mimeTypes[ext] || 'image/png' // Default to PNG if unknown
+    }
+
+    const mimeType = getMimeType(filename)
+    
+    // Create Blob with correct MIME type
+    let blob: Blob
+    if (imageData instanceof Blob) {
+      // If it's already a Blob, use it as-is (it should have the correct type)
+      blob = imageData
+    } else if (imageData instanceof File) {
+      // If it's a File, use it as-is (it has the correct type)
+      blob = imageData
+    } else {
+      // ArrayBuffer - create Blob with detected MIME type
+      blob = new Blob([imageData], { type: mimeType })
+    }
+
     const formData = new FormData()
-    formData.append('file', imageData instanceof Blob ? imageData : new Blob([imageData]), filename)
-    formData.append('user_id', userId)
+    formData.append('file', blob, filename)
+    // Note: user_id is sent as query parameter, not form data
     if (metadata) {
       formData.append('metadata', JSON.stringify(metadata))
     }
@@ -447,6 +478,7 @@ export class MemoryClient {
     }
 
     const url = new URL(`${this.baseUrl}/memories/image/upload`)
+    url.searchParams.append('user_id', userId)
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers,
@@ -668,7 +700,7 @@ export class MemoryClient {
 
   async getGroupContext(userId: string, groupId: string, limit: number = 50): Promise<any> {
     return this.request('GET', `/groups/${groupId}/context`, {
-      params: { limit },
+      params: { user_id: userId, limit },
     })
   }
 
