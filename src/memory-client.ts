@@ -369,7 +369,16 @@ export class MemoryClient {
   }
 
   async getConversation(conversationId: string): Promise<any> {
-    return this.request('GET', `/conversations/${conversationId}`)
+    try {
+      return await this.request('GET', `/conversations/${conversationId}`)
+    } catch (error: any) {
+      // Handle 404 by returning empty dict for backward compatibility (matches Python SDK behavior)
+      // The request method throws Error with message like "HTTP 404: Not Found"
+      if (error.message && (error.message.includes('404') || error.message.includes('Not found'))) {
+        return {}
+      }
+      throw error
+    }
   }
 
   async getSummary(userId: string): Promise<any> {
