@@ -33,9 +33,9 @@ export class Memphora {
    * Store a memory
    */
   async store(content: string, metadata?: Record<string, any>): Promise<Memory> {
-    // Automatically extract and store memories
-    const extracted = await this.client.extractFromContent(this.userId, content, metadata)
-    return extracted[0] || (await this.client.addMemory(this.userId, content, metadata))
+    // Store complete memory directly (preserves exact content)
+    // With optimized storage, this is fast (~50ms) and maintains data quality
+    return await this.client.addMemory(this.userId, content, metadata)
   }
 
   /**
