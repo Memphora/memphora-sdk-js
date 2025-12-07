@@ -1,6 +1,18 @@
-# Memphora SDK (TypeScript)
+<p align="center">
+  <img src="logo.png" alt="Memphora Logo" width="120" height="120">
+</p>
 
-Persistent memory layer for AI agents. Store, search, and retrieve memories with semantic understanding.
+<h1 align="center">Memphora TypeScript SDK</h1>
+
+<p align="center">
+  <strong>Persistent memory layer for AI agents. Store, search, and retrieve memories with semantic understanding.</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/memphora"><img src="https://img.shields.io/npm/v/memphora.svg" alt="npm"></a>
+  <a href="https://github.com/Memphora/memphora-sdk-js/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://memphora.ai"><img src="https://img.shields.io/badge/website-memphora.ai-orange.svg" alt="Website"></a>
+</p>
 
 ## Installation
 
