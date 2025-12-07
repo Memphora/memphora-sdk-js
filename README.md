@@ -50,6 +50,103 @@ const context = await memory.getContext('Tell me about my hobbies');
 - 🤖 **Multi-Agent Support** - Separate memory spaces for different agents
 - 👥 **Group Memories** - Shared memories for teams
 - 📈 **Analytics** - Track memory growth and usage
+- ⚡ **Vercel AI SDK** - Native integration for Next.js applications
+
+## Vercel AI SDK Integration
+
+Add persistent memory to your Next.js AI applications with the Vercel AI SDK integration.
+
+### Basic Usage (API Route)
+
+```typescript
+// app/api/chat/route.ts
+import { createMemphoraMiddleware } from 'memphora'
+import { openai } from '@ai-sdk/openai'
+import { streamText } from 'ai'
+
+const memphora = createMemphoraMiddleware({
+  apiKey: process.env.MEMPHORA_API_KEY!,
+  getUserId: (req) => req.headers.get('x-user-id') || 'anonymous'
+})
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  
+  // Get context from memory and inject into messages
+  const { enhancedMessages, userId } = await memphora.beforeChat(messages, req)
+  
+  // Call LLM with memory-enhanced messages
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages: enhancedMessages
+  })
+  
+  // Store conversation after completion (non-blocking)
+  result.text.then(text => {
+    memphora.afterChat(messages, text, req, { userId })
+  })
+  
+  return result.toDataStreamResponse()
+}
+```
+
+### Edge Runtime
+
+```typescript
+// For Edge Runtime, use the lightweight client
+import { createEdgeClient } from 'memphora'
+
+const memphora = createEdgeClient({
+  apiKey: process.env.MEMPHORA_API_KEY!
+})
+
+export const runtime = 'edge'
+
+export async function POST(req: Request) {
+  const { messages, userId } = await req.json()
+  
+  // Get relevant context
+  const memories = await memphora.search(userId, messages[messages.length - 1].content)
+  const context = memories.map(m => m.content).join('\n')
+  
+  // ... use context in your LLM call
+}
+```
+
+### Streaming with Auto-Store
+
+```typescript
+import { createMemphoraMiddleware, wrapStreamWithMemory } from 'memphora'
+
+const memphora = createMemphoraMiddleware({ apiKey: '...' })
+
+// Wrap any async iterable stream
+const wrappedStream = wrapStreamWithMemory(
+  originalStream,
+  memphora,
+  messages,
+  userId
+)
+
+// Memory is automatically stored when stream completes
+await wrappedStream.memoryPromise
+```
+
+### Configuration Options
+
+```typescript
+const memphora = createMemphoraMiddleware({
+  apiKey: string,                    // Required: Memphora API key
+  apiUrl?: string,                   // API URL (default: https://api.memphora.ai/api/v1)
+  getUserId?: (req) => string,       // Function to extract user ID from request
+  defaultUserId?: string,            // Default user ID (default: 'anonymous')
+  maxMemories?: number,              // Max memories in context (default: 10)
+  maxTokens?: number,                // Max tokens for context (default: 2000)
+  autoStore?: boolean,               // Auto-store conversations (default: true)
+  injectAsSystemMessage?: boolean,   // Inject context as system message (default: true)
+  systemMessagePrefix?: string       // Prefix for context message
+})
+```
 
 ## API Reference
 

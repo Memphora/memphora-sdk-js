@@ -1,6 +1,6 @@
 {
   "name": "memphora",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "Memphora SDK - Persistent memory layer for AI agents (JavaScript/TypeScript)",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -26,7 +26,12 @@
     "semantic-search",
     "saas",
     "typescript",
-    "javascript"
+    "javascript",
+    "vercel-ai-sdk",
+    "nextjs",
+    "ai-sdk",
+    "streaming",
+    "chatbot"
   ],
   "author": "Memphora <info@memphora.ai>",
   "license": "MIT",
