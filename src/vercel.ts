@@ -180,9 +180,14 @@ export function createMemphoraMiddleware(config: MemphoraMiddlewareConfig) {
 
       if (query) {
         try {
-          memories = await client.search(query, maxMemories)
-          if (memories.length > 0) {
-            context = memories.map(m => `- ${m.content}`).join('\n')
+          const result = await client.search(query, maxMemories)
+          if (result.facts && result.facts.length > 0) {
+            context = result.facts.map((f: { text: string }) => `- ${f.text}`).join('\n')
+            // Convert facts to Memory format for backwards compatibility
+            memories = result.facts.map((f: { text: string; memory_id?: string }) => ({
+              id: f.memory_id || '',
+              content: f.text
+            })) as Memory[]
           }
         } catch (error) {
           console.warn('[Memphora] Failed to retrieve context:', error)
@@ -286,10 +291,16 @@ export function createMemphoraMiddleware(config: MemphoraMiddlewareConfig) {
       const client = getClient(userId)
 
       try {
-        const memories = await client.search(query, maxMemories)
-        const context = memories.length > 0
-          ? memories.map(m => `- ${m.content}`).join('\n')
-          : ''
+        const result = await client.search(query, maxMemories)
+        let memories: Memory[] = []
+        let context = ''
+        if (result.facts && result.facts.length > 0) {
+          context = result.facts.map((f: { text: string }) => `- ${f.text}`).join('\n')
+          memories = result.facts.map((f: { text: string; memory_id?: string }) => ({
+            id: f.memory_id || '',
+            content: f.text
+          })) as Memory[]
+        }
         return { context, memories }
       } catch (error) {
         console.warn('[Memphora] Failed to get context:', error)
@@ -390,10 +401,10 @@ export function wrapStreamWithMemory<T extends AsyncIterable<any>>(
       try {
         for await (const chunk of stream) {
           // Extract content from chunk (handles OpenAI format)
-          const content = chunk.choices?.[0]?.delta?.content || 
-                         chunk.delta?.content ||
-                         chunk.content ||
-                         ''
+          const content = chunk.choices?.[0]?.delta?.content ||
+            chunk.delta?.content ||
+            chunk.content ||
+            ''
           fullResponse += content
           yield chunk
         }

@@ -29,7 +29,7 @@ export class MemoryClient {
     } = {}
   ): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`)
-    
+
     if (options.params) {
       Object.entries(options.params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -74,6 +74,9 @@ export class MemoryClient {
     })
   }
 
+  /**
+   * Search memories - returns structured response with facts, context, and metadata
+   */
   async searchMemories(
     userId: string,
     query: string,
@@ -84,7 +87,11 @@ export class MemoryClient {
       cohere_api_key?: string
       jina_api_key?: string
     }
-  ): Promise<Memory[]> {
+  ): Promise<{
+    facts: Array<{ text: string; memory_id?: string; timestamp?: string; similarity?: number }>
+    critical_context?: string
+    metadata?: Record<string, any>
+  }> {
     const body: any = {
       user_id: userId,
       query,
@@ -92,15 +99,19 @@ export class MemoryClient {
       rerank: options?.rerank || false,
       rerank_provider: options?.rerank_provider || 'auto',
     }
-    
+
     if (options?.cohere_api_key) {
       body.cohere_api_key = options.cohere_api_key
     }
     if (options?.jina_api_key) {
       body.jina_api_key = options.jina_api_key
     }
-    
-    return this.request<Memory[]>('POST', '/memories/search', {
+
+    return this.request<{
+      facts: Array<{ text: string; memory_id?: string; timestamp?: string; similarity?: number }>
+      critical_context?: string
+      metadata?: Record<string, any>
+    }>('POST', '/memories/search', {
       body,
     })
   }
@@ -461,7 +472,7 @@ export class MemoryClient {
     }
 
     const mimeType = getMimeType(filename)
-    
+
     // Create Blob with correct MIME type
     let blob: Blob
     if (imageData instanceof Blob) {
@@ -510,6 +521,111 @@ export class MemoryClient {
         limit,
       },
     })
+  }
+
+  // Document & Visual Processing
+
+  /**
+   * Ingest any document type into memory.
+   */
+  async ingestDocument(
+    userId: string,
+    contentType: string,
+    options?: {
+      url?: string
+      data?: string
+      text?: string
+      metadata?: Record<string, any>
+      asyncProcessing?: boolean
+    }
+  ): Promise<any> {
+    const content: Record<string, any> = { type: contentType }
+    if (options?.url) content.url = options.url
+    if (options?.data) content.data = options.data
+    if (options?.text) content.text = options.text
+
+    return this.request('POST', '/documents', {
+      body: {
+        user_id: userId,
+        content,
+        metadata: options?.metadata || {},
+        async_processing: options?.asyncProcessing !== false
+      }
+    })
+  }
+
+  /**
+   * Get a fresh signed URL for an image memory.
+   */
+  async getImageUrl(memoryId: string): Promise<any> {
+    return this.request('GET', `/memories/image/${memoryId}/url`)
+  }
+
+  /**
+   * Upload any document type and create memories.
+   * Supports PDF, images, text files, markdown, JSON, CSV, and more.
+   */
+  async uploadDocument(
+    userId: string,
+    fileData: Blob | File | ArrayBuffer,
+    filename: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    // Determine MIME type from filename extension
+    const getMimeType = (filename: string): string => {
+      const ext = filename.toLowerCase().split('.').pop() || ''
+      const mimeTypes: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'txt': 'text/plain',
+        'md': 'text/markdown',
+        'json': 'application/json',
+        'csv': 'text/csv',
+        'xml': 'application/xml',
+      }
+      return mimeTypes[ext] || 'application/octet-stream'
+    }
+
+    const mimeType = getMimeType(filename)
+
+    // Create Blob with correct MIME type
+    let blob: Blob
+    if (fileData instanceof Blob) {
+      blob = fileData
+    } else if (fileData instanceof File) {
+      blob = fileData
+    } else {
+      blob = new Blob([fileData], { type: mimeType })
+    }
+
+    const formData = new FormData()
+    formData.append('file', blob, filename)
+    if (metadata) {
+      formData.append('metadata', JSON.stringify(metadata))
+    }
+
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.apiKey}`
+    }
+
+    const url = new URL(`${this.baseUrl}/documents/upload`)
+    url.searchParams.append('user_id', userId)
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error: any = await response.json().catch(() => ({ error: response.statusText }))
+      throw new Error(error.error || error.detail || `HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 
   // Security & Compliance

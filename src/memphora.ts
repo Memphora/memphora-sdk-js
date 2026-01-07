@@ -40,6 +40,20 @@ export class Memphora {
 
   /**
    * Search memories with optional external reranking
+   * 
+   * @returns SearchResult with:
+   *   - facts: Array of matching facts with memory_id, text, timestamp, similarity
+   *   - critical_context: Important context for LLM agents (if available)
+   *   - metadata: Extracted metadata like key_entities, counts, dates
+   * 
+   * @example
+   * const result = await memory.search("user preferences")
+   * for (const fact of result.facts) {
+   *   console.log(fact.text, fact.similarity)
+   * }
+   * if (result.critical_context) {
+   *   console.log(`Important: ${result.critical_context}`)
+   * }
    */
   async search(
     query: string,
@@ -50,7 +64,11 @@ export class Memphora {
       cohere_api_key?: string
       jina_api_key?: string
     }
-  ): Promise<Memory[]> {
+  ): Promise<{
+    facts: Array<{ text: string; memory_id?: string; timestamp?: string; similarity?: number }>
+    critical_context?: string
+    metadata?: Record<string, any>
+  }> {
     return this.client.searchMemories(this.userId, query, limit, options)
   }
 
@@ -58,13 +76,13 @@ export class Memphora {
    * Get context for a query
    */
   async getContext(query: string, limit: number = 5): Promise<string> {
-    const memories = await this.search(query, limit)
-    
-    if (memories.length === 0) {
+    const result = await this.search(query, limit)
+
+    if (!result.facts || result.facts.length === 0) {
       return ''
     }
 
-    const contextLines = memories.map(mem => `- ${mem.content}`)
+    const contextLines = result.facts.map((fact: { text: string }) => `- ${fact.text}`)
     return 'Relevant context from past conversations:\n' + contextLines.join('\n')
   }
 
@@ -129,42 +147,6 @@ export class Memphora {
   /**
    * Advanced search with options
    */
-  async searchAdvanced(query: string, options?: {
-    limit?: number
-    filters?: Record<string, any>
-    include_related?: boolean
-    min_score?: number
-    sort_by?: 'relevance' | 'recency' | 'importance'
-  }): Promise<Memory[]> {
-    return this.client.searchAdvanced(this.userId, query, options)
-  }
-
-  /**
-   * Optimized search for better performance
-   */
-  async searchOptimized(query: string, options?: {
-    max_tokens?: number
-    max_memories?: number
-    use_compression?: boolean
-    use_cache?: boolean
-  }): Promise<any> {
-    return this.client.searchOptimized(this.userId, query, options)
-  }
-
-  /**
-   * Enhanced search with maximum performance
-   */
-  async searchEnhanced(query: string, options?: {
-    max_tokens?: number
-    max_memories?: number
-    use_compression?: boolean
-  }): Promise<any> {
-    return this.client.searchEnhanced(this.userId, query, options)
-  }
-
-  /**
-   * Batch create multiple memories
-   */
   async batchStore(
     memories: Array<{ content: string; metadata?: Record<string, any> }>,
     linkRelated: boolean = true
@@ -175,47 +157,12 @@ export class Memphora {
   /**
    * Merge multiple memories
    */
-  async merge(memoryIds: string[], strategy: 'combine' | 'keep_latest' | 'keep_most_relevant' = 'combine'): Promise<Memory> {
-    return this.client.mergeMemories(memoryIds, strategy)
-  }
-
-  /**
-   * Find contradictions for a memory
-   */
-  async findContradictions(memoryId: string, threshold: number = 0.7): Promise<Memory[]> {
-    return this.client.findContradictions(memoryId, threshold)
-  }
-
-  /**
-   * Get memory context with related memories
-   */
-  async getContextForMemory(memoryId: string, depth: number = 2): Promise<any> {
-    return this.client.getMemoryContext(memoryId, depth)
-  }
-
-  /**
-   * Export all memories
-   */
   async export(format: 'json' | 'csv' = 'json'): Promise<any> {
     return this.client.exportMemories(this.userId, format)
   }
 
   /**
    * Import memories
-   */
-  async import(data: string, format: 'json' | 'csv' = 'json'): Promise<any> {
-    return this.client.importMemories(this.userId, data, format)
-  }
-
-  /**
-   * Get user statistics
-   */
-  async getStatistics(): Promise<any> {
-    return this.client.getUserStatistics(this.userId)
-  }
-
-  /**
-   * Delete all user memories
    */
   async deleteAll(): Promise<any> {
     return this.client.deleteAllUserMemories(this.userId)
@@ -252,13 +199,6 @@ export class Memphora {
   /**
    * Get rolling summary of all conversations
    */
-  async getSummary(): Promise<any> {
-    return this.client.getSummary(this.userId)
-  }
-
-  /**
-   * Store an image memory
-   */
   async storeImage(options?: {
     imageUrl?: string
     imageBase64?: string
@@ -275,22 +215,72 @@ export class Memphora {
     return this.client.searchImages(this.userId, query, limit)
   }
 
+  // Document & Visual Processing
+
+  /**
+   * Ingest any document type into memory.
+   * 
+   * Supports PDF, images, URLs, and plain text. Automatically extracts
+   * and stores relevant information as searchable memories.
+   * 
+   * @param contentType - One of "pdf_url", "pdf_base64", "image_url", 
+   *                      "image_base64", "url", or "text"
+   * @param options.url - URL for pdf_url, image_url, or url types
+   * @param options.data - Base64 data for pdf_base64 or image_base64 types
+   * @param options.text - Plain text for text type
+   * @param options.metadata - Optional metadata for the document
+   * @param options.asyncProcessing - If true, returns immediately with job_id (default: true)
+   * 
+   * @returns If async: object with job_id for tracking. If sync: extracted memories.
+   */
+  async ingestDocument(
+    contentType: 'pdf_url' | 'pdf_base64' | 'image_url' | 'image_base64' | 'url' | 'text',
+    options?: {
+      url?: string
+      data?: string
+      text?: string
+      metadata?: Record<string, any>
+      asyncProcessing?: boolean
+    }
+  ): Promise<any> {
+    return this.client.ingestDocument(this.userId, contentType, options)
+  }
+
+  /**
+   * Get a fresh signed URL for an image memory.
+   * 
+   * Signed URLs expire after 7 days. Use this to get a new URL
+   * when the previous one has expired.
+   * 
+   * @param memoryId - ID of the image memory
+   * @returns Object with image_url or error message
+   */
+  async getImageUrl(memoryId: string): Promise<any> {
+    return this.client.getImageUrl(memoryId)
+  }
+
+  /**
+   * Upload any document type and create memories.
+   * 
+   * Supports PDF, images, text files, markdown, JSON, CSV, and more.
+   * Files are processed automatically based on file extension.
+   * 
+   * @param fileData - Raw file data (Blob, File, or ArrayBuffer)
+   * @param filename - Filename with extension (e.g., "report.pdf", "notes.txt")
+   * @param metadata - Optional metadata for the document
+   * 
+   * @returns Object with job_id for tracking (async processing)
+   */
+  async uploadDocument(
+    fileData: Blob | File | ArrayBuffer,
+    filename: string,
+    metadata?: Record<string, any>
+  ): Promise<any> {
+    return this.client.uploadDocument(this.userId, fileData, filename, metadata)
+  }
+
   /**
    * Get memory versions
-   */
-  async getVersions(memoryId: string, limit: number = 50): Promise<any[]> {
-    return this.client.getMemoryVersions(memoryId, limit)
-  }
-
-  /**
-   * Rollback memory to a version
-   */
-  async rollback(memoryId: string, targetVersion: number): Promise<any> {
-    return this.client.rollbackMemory(memoryId, targetVersion, this.userId)
-  }
-
-  /**
-   * Get a specific memory by ID
    */
   async getMemory(memoryId: string): Promise<Memory> {
     return this.client.getMemory(memoryId)
@@ -298,13 +288,6 @@ export class Memphora {
 
   /**
    * Get a specific conversation by ID
-   */
-  async getConversation(conversationId: string): Promise<any> {
-    return this.client.getConversation(conversationId)
-  }
-
-  /**
-   * Store a memory for a specific agent
    */
   async storeAgentMemory(
     agentId: string,
@@ -317,14 +300,31 @@ export class Memphora {
 
   /**
    * Search memories for a specific agent
+   * @returns Structured response with facts array
    */
   async searchAgentMemories(
     agentId: string,
     query: string,
     runId?: string,
     limit: number = 10
-  ): Promise<Memory[]> {
-    return this.client.searchAgentMemories(this.userId, agentId, query, runId, limit)
+  ): Promise<{
+    facts: Array<{ text: string; memory_id?: string; timestamp?: string; similarity?: number }>
+    agent_id: string
+    metadata?: Record<string, any>
+  }> {
+    const memories = await this.client.searchAgentMemories(this.userId, agentId, query, runId, limit)
+    // Convert to structured format matching main search()
+    const facts = (memories as any[]).map((mem: any) => ({
+      text: mem.content || '',
+      memory_id: mem.id || mem.memory_id,
+      timestamp: mem.timestamp,
+      similarity: mem.similarity
+    }))
+    return {
+      facts,
+      agent_id: agentId,
+      metadata: runId ? { run_id: runId } : {}
+    }
   }
 
   /**
@@ -347,13 +347,30 @@ export class Memphora {
 
   /**
    * Search memories for a group
+   * @returns Structured response with facts array
    */
   async searchGroupMemories(
     groupId: string,
     query: string,
     limit: number = 10
-  ): Promise<Memory[]> {
-    return this.client.searchGroupMemories(this.userId, groupId, query, limit)
+  ): Promise<{
+    facts: Array<{ text: string; memory_id?: string; timestamp?: string; similarity?: number }>
+    group_id: string
+    metadata?: Record<string, any>
+  }> {
+    const memories = await this.client.searchGroupMemories(this.userId, groupId, query, limit)
+    // Convert to structured format matching main search()
+    const facts = (memories as any[]).map((mem: any) => ({
+      text: mem.content || '',
+      memory_id: mem.id || mem.memory_id,
+      timestamp: mem.timestamp,
+      similarity: mem.similarity
+    }))
+    return {
+      facts,
+      group_id: groupId,
+      metadata: {}
+    }
   }
 
   /**
@@ -366,103 +383,12 @@ export class Memphora {
   /**
    * Get user's memory statistics and insights
    */
-  async getUserAnalytics(): Promise<any> {
-    return this.client.getUserAnalytics(this.userId)
-  }
-
-  /**
-   * Track memory growth over time
-   */
-  async getMemoryGrowth(days: number = 30): Promise<any> {
-    return this.client.getMemoryGrowth(this.userId, days)
-  }
-
-  /**
-   * Get memories related to a specific memory
-   */
-  async getRelatedMemories(memoryId: string, limit: number = 10): Promise<Memory[]> {
-    const context = await this.client.getMemoryContext(memoryId, 1)
-    return (context.related_memories || []).slice(0, limit)
-  }
-
-
-  /**
-   * Link two memories in the graph
-   */
-  async link(
-    memoryId: string,
-    targetId: string,
-    relationshipType: 'related' | 'contradicts' | 'supports' | 'extends' = 'related'
-  ): Promise<any> {
-    return this.client.linkMemories(memoryId, targetId, relationshipType)
-  }
-
-  /**
-   * Find shortest path between two memories in the graph
-   */
-  async findPath(sourceId: string, targetId: string): Promise<any> {
-    return this.client.findMemoryPath(sourceId, targetId)
-  }
-
-  /**
-   * Get optimized context for a query (returns formatted string)
-   */
-  async getOptimizedContext(
-    query: string,
-    maxTokens: number = 2000,
-    maxMemories: number = 20,
-    useCompression: boolean = true,
-    useCache: boolean = true
-  ): Promise<string> {
-    const result = await this.searchOptimized(query, {
-      max_tokens: maxTokens,
-      max_memories: maxMemories,
-      use_compression: useCompression,
-      use_cache: useCache
-    })
-    return result.context || ''
-  }
-
-  /**
-   * Get enhanced context for a query (returns formatted string)
-   */
-  async getEnhancedContext(
-    query: string,
-    maxTokens: number = 1500,
-    maxMemories: number = 15,
-    useCompression: boolean = true
-  ): Promise<string> {
-    const result = await this.searchEnhanced(query, {
-      max_tokens: maxTokens,
-      max_memories: maxMemories,
-      use_compression: useCompression
-    })
-    return result.context || ''
-  }
-
-  /**
-   * Compare two versions of a memory
-   */
-  async compareVersions(versionId1: string, versionId2: string): Promise<any> {
-    return this.client.compareVersions(versionId1, versionId2)
-  }
-
-  /**
-   * Upload an image from bytes data
-   */
   async uploadImage(
     imageData: Blob | File | ArrayBuffer,
     filename: string,
     metadata?: Record<string, any>
   ): Promise<any> {
     return this.client.uploadImage(this.userId, imageData, filename, metadata)
-  }
-
-  /**
-   * Make text more concise
-   */
-  async concise(text: string): Promise<any> {
-    return this.client.conciseText(text)
   }
 
   /**
@@ -473,163 +399,6 @@ export class Memphora {
   }
 
   /**
-   * Webhooks - Create a webhook
-   */
-  async createWebhook(
-    url: string,
-    events: string[],
-    secret?: string
-  ): Promise<any> {
-    return this.client.createWebhook(url, events, secret)
-  }
-
-  /**
-   * Webhooks - List all webhooks
-   */
-  async listWebhooks(userId?: string): Promise<any[]> {
-    return this.client.listWebhooks(userId)
-  }
-
-  /**
-   * Webhooks - Get a specific webhook
-   */
-  async getWebhook(webhookId: string): Promise<any> {
-    return this.client.getWebhook(webhookId)
-  }
-
-  /**
-   * Webhooks - Update a webhook
-   */
-  async updateWebhook(
-    webhookId: string,
-    options?: {
-      url?: string
-      events?: string[]
-      secret?: string
-      active?: boolean
-    }
-  ): Promise<any> {
-    return this.client.updateWebhook(webhookId, options)
-  }
-
-  /**
-   * Webhooks - Delete a webhook
-   */
-  async deleteWebhook(webhookId: string): Promise<any> {
-    return this.client.deleteWebhook(webhookId)
-  }
-
-  /**
-   * Webhooks - Test a webhook
-   */
-  async testWebhook(webhookId: string): Promise<any> {
-    return this.client.testWebhook(webhookId)
-  }
-
-  /**
-   * Security & Compliance - Export GDPR data
-   */
-  async exportGdpr(): Promise<any> {
-    return this.client.exportGdpr(this.userId)
-  }
-
-  /**
-   * Security & Compliance - Delete GDPR data
-   */
-  async deleteGdpr(): Promise<any> {
-    return this.client.deleteGdpr(this.userId)
-  }
-
-  /**
-   * Security & Compliance - Set retention policy
-   */
-  async setRetentionPolicy(
-    dataType: string,
-    retentionDays: number,
-    options?: {
-      organizationId?: string
-      autoDelete?: boolean
-    }
-  ): Promise<any> {
-    return this.client.setRetentionPolicy(dataType, retentionDays, {
-      ...options,
-      userId: this.userId
-    })
-  }
-
-  /**
-   * Security & Compliance - Apply retention policies
-   */
-  async applyRetentionPolicies(options?: {
-    organizationId?: string
-  }): Promise<any> {
-    return this.client.applyRetentionPolicies({
-      ...options,
-      userId: this.userId
-    })
-  }
-
-  /**
-   * Security & Compliance - Get compliance report
-   */
-  async getComplianceReport(
-    organizationId: string,
-    complianceType?: string
-  ): Promise<any> {
-    return this.client.getComplianceReport(organizationId, complianceType)
-  }
-
-  /**
-   * Security & Compliance - Record compliance event
-   */
-  async recordComplianceEvent(event: Omit<ComplianceEvent, 'user_id'>): Promise<any> {
-    return this.client.recordComplianceEvent({
-      ...event,
-      user_id: this.userId
-    } as ComplianceEvent)
-  }
-
-  /**
-   * Security & Compliance - Encrypt data
-   */
-  async encryptData(data: string): Promise<any> {
-    return this.client.encryptData(data)
-  }
-
-  /**
-   * Security & Compliance - Decrypt data
-   */
-  async decryptData(encryptedData: string): Promise<any> {
-    return this.client.decryptData(encryptedData)
-  }
-
-  /**
-   * Observability - Get metrics
-   */
-  async getMetrics(): Promise<any> {
-    return this.client.getMetrics()
-  }
-
-  /**
-   * Observability - Get metrics summary
-   */
-  async getMetricsSummary(): Promise<any> {
-    return this.client.getMetricsSummary()
-  }
-
-  /**
-   * Observability - Get audit logs
-   */
-  async getAuditLogs(options?: {
-    limit?: number
-  }): Promise<any[]> {
-    return this.client.getAuditLogs({
-      ...options,
-      userId: this.userId
-    })
-  }
-
-  /**
    * Access the underlying client for advanced operations
    * Use this to access methods not exposed in the high-level API
    */
@@ -637,4 +406,3 @@ export class Memphora {
     return this.client
   }
 }
-
