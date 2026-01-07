@@ -22,3 +22,15 @@ export {
   type EdgeClient
 } from './vercel'
 
+// Framework Integrations (LangChain, LlamaIndex, CrewAI, AutoGen)
+export {
+  MemphoraLangChain,
+  MemphoraLlamaIndex,
+  MemphoraCrewAI,
+  MemphoraAgentMemory,
+  MemphoraAutoGen,
+  type LangChainMemoryConfig,
+  type LlamaIndexMemoryConfig,
+  type CrewAIMemoryConfig,
+  type AutoGenMemoryConfig
+} from './integrations'
